@@ -3,20 +3,30 @@ package com.mylearn.entity;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.http.HttpMethod;
 import org.springframework.http.ResponseEntity;
+import org.springframework.web.client.RestClientException;
+import org.springframework.web.client.RestTemplate;
 
 import java.util.Map;
 
 @Data
 @AllArgsConstructor
 @NoArgsConstructor
+@Slf4j
 public class TaskHttp extends Task{
     String resultUrl;
-    // todo 使http路径可运行，现在先暂时停留在mysql阶段
 
 
     public void asyncResult() {
-        
+        RestTemplate restTemplate = new RestTemplate();
 
+        try {
+            restTemplate.exchange(this.resultUrl, HttpMethod.POST, this.responseEntity, Map.class);
+        } catch (RestClientException e) {
+//            throw new RuntimeException(e);
+            log.error("HttpTask-ERROR:下游服务通知异常");
+        }
     }
 }

@@ -11,11 +11,11 @@ import java.util.Map;
 @Data
 @AllArgsConstructor
 @NoArgsConstructor
-public class Task {
+public abstract class Task {
     HttpEntity<?> requestEntity;
     String url;
     ResponseEntity<Map> responseEntity;
 
 
-    public void asyncResult() {}
+    public abstract void asyncResult();
 }
