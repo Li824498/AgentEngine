@@ -14,6 +14,7 @@ import org.springframework.web.client.RestTemplate;
 import java.util.Map;
 import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.BlockingQueue;
+import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
 public class agentEngine {
@@ -42,13 +43,42 @@ public class agentEngine {
     BlockingQueue<Task> rawTaskQueue = new ArrayBlockingQueue<>(100);
     BlockingQueue<Task> ripeTaskQueue = new ArrayBlockingQueue<>(100);
 
+    private final OkHttpClient okHttpClient = new OkHttpClient();
+
+
     public void startWork() {
-        // todo 启动1000个虚拟线程，来处理i2cQueue中的任务
+        new Thread(new Runnable() {
+            @Override
+            public void run() {
+                while (true) {
+                    Task task = rawTaskQueue.poll();
+
+                    ExecutorService executorService = Executors.newVirtualThreadPerTaskExecutor();
+                    executorService.submit(new Runnable() {
+                        @Override
+                        public void run() {
+                            asyncWork(task);
+                        }
+                    });
+                }
+            }
+        }).start();
 
 
-        // todo 启动1000个虚拟线程，来处理c2rQueue中的任务分发通知
+        new Thread(new Runnable() {
+            @Override
+            public void run() {
+                Task task = ripeTaskQueue.poll();
 
-
+                ExecutorService executorService = Executors.newVirtualThreadPerTaskExecutor();
+                executorService.submit(new Runnable() {
+                    @Override
+                    public void run() {
+                        asyncResult(task);
+                    }
+                });
+            }
+        }).start();
     }
 
     // stage1:接受消息方法
@@ -82,9 +112,7 @@ public class agentEngine {
     /**
      * 工作方法，大模型调用方法
      */
-    public void asyncWork() {
-        Task task = rawTaskQueue.poll();
-
+    public void asyncWork(Task task) {
         ResponseEntity<Map> responseEntity = syncTransfer(task.getRequestEntity(), task.getUrl());
         task.setResponseEntity(responseEntity);
 
@@ -94,10 +122,7 @@ public class agentEngine {
 
     // stage3:工作方法:根绝任务类型分发
 
-    public void asyncResult() {
-        Task task = ripeTaskQueue.poll();
-
-        // todo
-
+    public void asyncResult(Task task) {
+        task.asyncResult();
     }
 }
